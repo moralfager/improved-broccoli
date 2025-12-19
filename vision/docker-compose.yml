@@ -1,0 +1,70 @@
+# Eco Monitoring System - Full Stack Docker Compose
+# Run: docker-compose up --build
+
+services:
+  # Backend API (FastAPI + ML)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: eco-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=info
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3002,https://eco.yourdomain.com}
+    volumes:
+      - ./backend/ml_models:/app/ml_models:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - eco-network
+
+  # Frontend (Next.js)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    container_name: eco-frontend
+    ports:
+      - "3002:3000"  # Изменено с 3000:3000 на 3002:3000 для избежания конфликта с Couple Calendar
+    environment:
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+      - NODE_ENV=production
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - eco-network
+
+  # Mock Data Sender (optional, for testing)
+  mock-sender:
+    build:
+      context: ./scripts
+      dockerfile: Dockerfile
+    container_name: eco-mock-sender
+    environment:
+      - API_URL=http://backend:8000/api/data
+      - SEND_INTERVAL=30
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    profiles:
+      - mock  # Only runs with: docker-compose --profile mock up
+    networks:
+      - eco-network
+
+networks:
+  eco-network:
+    driver: bridge
+

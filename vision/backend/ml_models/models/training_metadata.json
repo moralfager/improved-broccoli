@@ -1,0 +1,73 @@
+{
+  "air_state": {
+    "accuracy": 1.0,
+    "cv_mean": 0.9993333333333332,
+    "classes": [
+      "clean",
+      "danger",
+      "moderate",
+      "polluted"
+    ],
+    "features": [
+      "co2_ppm",
+      "dust_mg_m3",
+      "mq135_raw",
+      "mq5_raw",
+      "temperature_c",
+      "humidity_pct",
+      "pressure_hpa",
+      "co2_norm",
+      "dust_norm",
+      "mq135_norm",
+      "mq5_norm",
+      "eco_index"
+    ]
+  },
+  "pollution_type": {
+    "accuracy": 1.0,
+    "cv_mean": 1.0,
+    "classes": [
+      "clean_air",
+      "dust",
+      "gas_leak",
+      "smoke",
+      "stuffy",
+      "voc_chemicals"
+    ],
+    "features": [
+      "co2_ppm",
+      "dust_mg_m3",
+      "mq135_raw",
+      "mq5_raw",
+      "humidity_pct",
+      "co2_dust_ratio",
+      "mq135_mq5_ratio",
+      "co2_norm",
+      "dust_norm",
+      "mq135_norm",
+      "mq5_norm",
+      "stuffy_score",
+      "gas_danger_score"
+    ]
+  },
+  "geo_cluster": {
+    "n_clusters": 5,
+    "inertia": 3605.4021623695294,
+    "features": [
+      "lat",
+      "lon",
+      "eco_index"
+    ]
+  },
+  "anomaly": {
+    "n_training_samples": 500,
+    "anomalies_detected": 2456,
+    "features": [
+      "co2_ppm",
+      "dust_mg_m3",
+      "mq135_raw",
+      "mq5_raw",
+      "humidity_pct"
+    ]
+  }
+}
