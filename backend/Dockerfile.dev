@@ -1,0 +1,29 @@
+FROM node:18-slim
+
+# Install required dependencies
+RUN apt-get update && apt-get install -y \
+    wget \
+    openssl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy prisma schema
+COPY prisma ./prisma/
+
+# Generate Prisma Client
+RUN npx prisma generate
+
+# Expose port
+EXPOSE 3001
+
+# Start in development mode
+CMD ["sh", "-c", "npx prisma migrate dev && npm run start:dev"]
+

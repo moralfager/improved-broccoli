@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест загрузки в Google Drive</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        button.secondary {
+            background-color: #2196F3;
+        }
+        button.secondary:hover {
+            background-color: #0b7dda;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            display: none;
+        }
+        .result.success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .result.error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .result img {
+            max-width: 100%;
+            margin-top: 10px;
+            border-radius: 4px;
+        }
+        .token-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        .status-message {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .status-message.success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .status-message.error {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <h1>Тест загрузки в Google Drive</h1>
+    
+    <div id="authStatus" class="status-message" style="display: none;"></div>
+
+    <div class="form-group">
+        <label>Шаг 1: Авторизация Google Drive</label>
+        <button id="authBtn" class="secondary" onclick="checkAuthStatus()">Проверить статус авторизации</button>
+        <button id="authorizeBtn" class="secondary" onclick="authorizeGoogleDrive()" style="display: none;">Авторизовать Google Drive</button>
+    </div>
+
+    <div class="form-group">
+        <label for="token">Шаг 2: Токен авторизации приложения (Bearer Token):</label>
+        <input type="text" id="token" class="token-input" placeholder="Вставьте токен из localStorage">
+        <small>Можно получить из localStorage браузера (ключ 'accessToken') после входа в приложение.</small>
+    </div>
+    
+    <div class="form-group">
+        <label for="file">Шаг 3: Выберите фото (для тестовой загрузки):</label>
+        <input type="file" id="file" accept="image/*">
+    </div>
+    
+    <button id="uploadBtn" onclick="uploadFile()">Загрузить одно фото в Google Drive</button>
+    
+    <hr style="margin: 30px 0; border: 1px solid #ddd;">
+    
+    <div class="form-group">
+        <label>Массовая загрузка и экспорт:</label>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            <button id="uploadAllBtn" class="secondary" onclick="uploadAllPhotos()">Загрузить все новые фотографии в Google Drive</button>
+            <button id="exportJsonBtn" class="secondary" onclick="exportData('json')">Скачать JSON файл</button>
+            <button id="exportCsvBtn" class="secondary" onclick="exportData('csv')">Скачать CSV файл</button>
+        </div>
+        <small style="display: block; margin-top: 10px; color: #666;">
+            При массовой загрузке будут загружены только новые фотографии (которые еще не были загружены). 
+            CSV и JSON файлы создаются заново каждый раз.
+        </small>
+    </div>
+    
+    <div id="result" class="result"></div>
+
+    <script>
+        const BACKEND_URL = window.location.hostname === 'localhost' 
+            ? 'http://localhost:3001'
+            : '';
+
+        // Попытка автоматически получить токен из localStorage (если открыто в том же домене)
+        window.addEventListener('DOMContentLoaded', () => {
+            try {
+                const token = localStorage.getItem('accessToken');
+                if (token) {
+                    document.getElementById('token').value = token;
+                }
+            } catch (e) {
+                console.log('Не удалось получить токен из localStorage');
+            }
+            // Проверяем статус авторизации при загрузке страницы
+            checkAuthStatus();
+        });
+
+        async function checkAuthStatus() {
+            const tokenInput = document.getElementById('token');
+            const authStatusDiv = document.getElementById('authStatus');
+            const authorizeBtn = document.getElementById('authorizeBtn');
+
+            if (!tokenInput.value) {
+                authStatusDiv.className = 'status-message error';
+                authStatusDiv.style.display = 'block';
+                authStatusDiv.textContent = 'Сначала введите токен приложения';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/storage/oauth/status`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${tokenInput.value}`,
+                    },
+                });
+
+                const data = await response.json();
+
+                if (data.isAuthorized) {
+                    authStatusDiv.className = 'status-message success';
+                    authStatusDiv.style.display = 'block';
+                    authStatusDiv.textContent = '✅ Google Drive авторизован';
+                    authorizeBtn.style.display = 'none';
+                } else {
+                    authStatusDiv.className = 'status-message error';
+                    authStatusDiv.style.display = 'block';
+                    authStatusDiv.textContent = '❌ Google Drive не авторизован. Нажмите кнопку "Авторизовать Google Drive"';
+                    authorizeBtn.style.display = 'inline-block';
+                }
+            } catch (error) {
+                authStatusDiv.className = 'status-message error';
+                authStatusDiv.style.display = 'block';
+                authStatusDiv.textContent = `Ошибка проверки статуса: ${error.message}`;
+            }
+        }
+
+        function authorizeGoogleDrive() {
+            const tokenInput = document.getElementById('token');
+            if (!tokenInput.value) {
+                alert('Сначала введите токен приложения');
+                return;
+            }
+            // Перенаправляем на endpoint авторизации
+            window.location.href = `${BACKEND_URL}/api/storage/oauth/authorize`;
+        }
+
+        async function uploadFile() {
+            const fileInput = document.getElementById('file');
+            const tokenInput = document.getElementById('token');
+            const uploadBtn = document.getElementById('uploadBtn');
+            const resultDiv = document.getElementById('result');
+
+            if (!fileInput.files || !fileInput.files[0]) {
+                alert('Выберите файл!');
+                return;
+            }
+
+            if (!tokenInput.value) {
+                alert('Введите токен авторизации!');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = 'Загрузка...';
+            resultDiv.style.display = 'none';
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/storage/upload`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${tokenInput.value}`,
+                    },
+                    body: formData,
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <h3>✅ Успешно загружено!</h3>
+                        <p><strong>ID файла:</strong> ${data.file.id}</p>
+                        <p><strong>Имя:</strong> ${data.file.name}</p>
+                        <p><strong>URL для отображения:</strong></p>
+                        <p><a href="${data.file.url}" target="_blank">${data.file.url}</a></p>
+                        <p><strong>Ссылка на Google Drive:</strong></p>
+                        <p><a href="${data.file.viewUrl}" target="_blank">Открыть в Drive</a></p>
+                        <p><strong>Изображение:</strong></p>
+                        <img src="${data.file.url}" alt="Загруженное изображение">
+                    `;
+                } else {
+                    resultDiv.className = 'result error';
+                    let errorMessage = data.message || JSON.stringify(data);
+                    
+                    // Если ошибка связана с авторизацией Google Drive
+                    if (errorMessage.includes('not authorized') || errorMessage.includes('authorize')) {
+                        errorMessage += '<br><br>Пожалуйста, сначала авторизуйте Google Drive (Шаг 1)';
+                    }
+                    
+                    resultDiv.innerHTML = `
+                        <h3>❌ Ошибка</h3>
+                        <p>${errorMessage}</p>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h3>❌ Ошибка</h3>
+                    <p>${error.message}</p>
+                `;
+            } finally {
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Загрузить в Google Drive';
+                resultDiv.style.display = 'block';
+            }
+        }
+
+        async function uploadAllPhotos() {
+            const tokenInput = document.getElementById('token');
+            const uploadAllBtn = document.getElementById('uploadAllBtn');
+            const resultDiv = document.getElementById('result');
+
+            if (!tokenInput.value) {
+                alert('Введите токен авторизации!');
+                return;
+            }
+
+            uploadAllBtn.disabled = true;
+            uploadAllBtn.textContent = 'Загрузка...';
+            resultDiv.style.display = 'none';
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/storage/upload-all-photos`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${tokenInput.value}`,
+                    },
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <h3>✅ Массовая загрузка завершена!</h3>
+                        <p><strong>Загружено:</strong> ${data.uploaded} фотографий</p>
+                        <p><strong>Пропущено (уже загружены):</strong> ${data.skipped} фотографий</p>
+                        <p><strong>Ошибок:</strong> ${data.errors}</p>
+                        ${data.errors > 0 ? `<p><strong>Детали ошибок:</strong></p><pre style="max-height: 200px; overflow-y: auto;">${JSON.stringify(data.results.filter(r => !r.success), null, 2)}</pre>` : ''}
+                    `;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `
+                        <h3>❌ Ошибка</h3>
+                        <p>${data.message || JSON.stringify(data)}</p>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h3>❌ Ошибка</h3>
+                    <p>${error.message}</p>
+                `;
+            } finally {
+                uploadAllBtn.disabled = false;
+                uploadAllBtn.textContent = 'Загрузить все новые фотографии в Google Drive';
+                resultDiv.style.display = 'block';
+            }
+        }
+
+        async function exportData(format) {
+            const tokenInput = document.getElementById('token');
+            const exportBtn = document.getElementById(`export${format.charAt(0).toUpperCase() + format.slice(1)}Btn`);
+
+            if (!tokenInput.value) {
+                alert('Введите токен авторизации!');
+                return;
+            }
+
+            exportBtn.disabled = true;
+            exportBtn.textContent = 'Скачивание...';
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/storage/export/${format}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${tokenInput.value}`,
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `timeline-export.${format}`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                // Показываем успешное сообщение
+                const resultDiv = document.getElementById('result');
+                resultDiv.className = 'result success';
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = `
+                    <h3>✅ Файл скачан!</h3>
+                    <p>Файл <strong>timeline-export.${format}</strong> успешно скачан.</p>
+                `;
+            } catch (error) {
+                alert(`Ошибка при скачивании файла: ${error.message}`);
+            } finally {
+                exportBtn.disabled = false;
+                exportBtn.textContent = format === 'json' ? 'Скачать JSON файл' : 'Скачать CSV файл';
+            }
+        }
+    </script>
+</body>
+</html>

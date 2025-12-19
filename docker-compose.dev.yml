@@ -1,0 +1,49 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: zha-backend-dev
+    ports:
+      - "3001:3001"
+    environment:
+      - DATABASE_URL=file:/app/data/dev.db
+      - JWT_SECRET=dev-secret-key-change-in-production
+      - JWT_EXPIRES_IN=7d
+      - PORT=3001
+      - NODE_ENV=development
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - ./backend/data:/app/data
+      - ./backend/uploads:/app/uploads
+    command: sh -c "npx prisma migrate deploy && npx prisma generate && npm run start:dev"
+    restart: unless-stopped
+    networks:
+      - zha-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: zha-frontend-dev
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:3001/api
+      - NODE_ENV=development
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    command: npm run dev
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - zha-network
+
+networks:
+  zha-network:
+    driver: bridge
+

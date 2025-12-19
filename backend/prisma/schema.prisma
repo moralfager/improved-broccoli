@@ -1,0 +1,140 @@
+// This is your Prisma schema file
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  name      String
+  avatar    String?
+  password  String
+  telegram  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  letters   Letter[]
+}
+
+model CalendarDay {
+  id           Int            @id @default(autoincrement())
+  date         DateTime       @unique
+  title        String?
+  mood         String?
+  note         String?
+  place        String?
+  tags         String?
+  musicTrackId Int?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  photos       Photo[]
+  items        CalendarItem[]
+  musicTrack   MusicTrack?    @relation(fields: [musicTrackId], references: [id], onDelete: SetNull)
+}
+
+model CalendarItem {
+  id        Int         @id @default(autoincrement())
+  dayId     Int
+  type      String      // plan, note, gift, place
+  text      String
+  time      String?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  day       CalendarDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
+}
+
+model Photo {
+  id              Int         @id @default(autoincrement())
+  dayId           Int
+  url             String
+  order           Int         @default(0)
+  googleDriveId   String?     // ID файла в Google Drive (для отслеживания загруженных)
+  googleDriveUrl  String?     // URL файла в Google Drive
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  day             CalendarDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
+}
+
+model RelationshipPeriod {
+  id        Int      @id @default(autoincrement())
+  name      String
+  startDate DateTime
+  endDate   DateTime?
+  color     String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Plan {
+  id          Int      @id @default(autoincrement())
+  date        DateTime
+  time        String?
+  title       String
+  description String?
+  type        String   // прогулка, кафе, кино, дом, подарок, праздник, поездка
+  location    String?
+  isCompleted Boolean  @default(false)
+  repeat      String?  // weekly, monthly, custom
+  reminder    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ImportantDate {
+  id          Int      @id @default(autoincrement())
+  date        DateTime
+  title       String
+  description String?
+  category    String   // знакомство, первая прогулка, её события, твои события
+  isAnnual    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Letter {
+  id        Int      @id @default(autoincrement())
+  authorId  Int
+  text      String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+}
+
+model MusicTrack {
+  id           Int           @id @default(autoincrement())
+  title        String
+  artist       String?
+  url          String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  calendarDays CalendarDay[]
+}
+
+model Surprise {
+  id          Int      @id @default(autoincrement())
+  revealDate  DateTime
+  title       String
+  description String?
+  isRevealed  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Habit {
+  id            Int       @id @default(autoincrement())
+  name          String
+  frequency     String    // daily, weekly, monthly
+  lastCompleted DateTime?
+  count         Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
