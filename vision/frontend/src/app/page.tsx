@@ -80,14 +80,8 @@ export default function HomePage() {
               <div className="text-6xl mb-4">📡</div>
               <h2 className="text-xl font-bold mb-2">Ожидание данных от станций</h2>
               <p className="text-[var(--color-text-muted)] mb-4">
-                Станции ещё не отправили данные. Запустите скрипт отправки:
+                Станции ещё не отправили данные. Данные появятся автоматически, когда станции начнут передавать информацию.
               </p>
-              <div className="bg-[var(--color-bg-primary)] rounded-lg p-4 text-left font-mono text-sm mb-4">
-                <p className="text-[var(--color-text-muted)]"># Установите зависимости</p>
-                <p className="text-[var(--color-accent-green)]">pip install requests</p>
-                <p className="text-[var(--color-text-muted)] mt-2"># Запустите скрипт</p>
-                <p className="text-[var(--color-accent-green)]">python scripts/send_mock_data.py</p>
-              </div>
               <div className="flex gap-2 justify-center">
                 {statuses.map(s => (
                   <div key={s.station_id} className="flex items-center gap-1 px-2 py-1 rounded bg-[var(--color-bg-card)]">

@@ -97,24 +97,6 @@ services:
     networks:
       - apps-network
 
-  # Mock Data Sender (optional, only runs with --profile mock)
-  eco-mock-sender:
-    build:
-      context: ./vision/scripts
-      dockerfile: Dockerfile
-    container_name: eco-mock-sender
-    environment:
-      - API_URL=http://eco-backend:8000/api/data
-      - SEND_INTERVAL=30
-    depends_on:
-      eco-backend:
-        condition: service_healthy
-    restart: unless-stopped
-    profiles:
-      - mock
-    networks:
-      - apps-network
-
 networks:
   apps-network:
     driver: bridge

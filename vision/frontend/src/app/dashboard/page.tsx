@@ -87,11 +87,8 @@ export default function DashboardPage() {
           <div className="text-6xl mb-4">📡</div>
           <h2 className="text-xl font-bold mb-2">Ожидание данных</h2>
           <p className="text-[var(--color-text-muted)] mb-4">
-            Станции ещё не отправили данные. Запустите скрипт отправки.
+            Станции ещё не отправили данные. Данные появятся автоматически, когда станции начнут передавать информацию.
           </p>
-          <div className="bg-[var(--color-bg-primary)] rounded-lg p-4 text-left font-mono text-sm inline-block">
-            <p className="text-[var(--color-accent-green)]">python scripts/send_mock_data.py --loop</p>
-          </div>
         </div>
       </div>
     );
