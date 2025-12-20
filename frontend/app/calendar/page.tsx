@@ -297,7 +297,7 @@ export default function CalendarPage() {
             const dayData = getDayData(date);
             const dayImportantDates = getImportantDatesForDay(date);
             const dateStr = getLocalDateString(date);
-            const hasPhotos = dayData?.photos && dayData.photos.length > 0;
+            const hasPhotos = (dayData?.photos?.length ?? 0) > 0;
             const viewed = isStoryViewed(dateStr);
             
             return (
@@ -677,7 +677,7 @@ function DayViewModal({
   onEdit: () => void;
   onViewStory: () => void;
 }) {
-  const hasPhotos = dayData?.photos && dayData.photos.length > 0;
+  const hasPhotos = (dayData?.photos?.length ?? 0) > 0;
 
   return (
     <div className="space-y-4">
@@ -706,7 +706,7 @@ function DayViewModal({
       {hasPhotos && (
         <div>
           <div className="grid grid-cols-3 gap-2 mb-3">
-            {dayData.photos.slice(0, 3).map((photo: any) => (
+            {dayData?.photos?.slice(0, 3).map((photo: any) => (
               <img
                 key={photo.id}
                 src={`${process.env.NEXT_PUBLIC_API_URL}/media/${photo.path}`}
@@ -721,7 +721,7 @@ function DayViewModal({
             className="w-full rounded-xl gap-2 bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 hover:opacity-90"
           >
             <Eye className="w-4 h-4" />
-            Смотреть как историю ({dayData.photos.length} фото)
+            Смотреть как историю ({dayData?.photos?.length ?? 0} фото)
           </Button>
         </div>
       )}
@@ -885,7 +885,7 @@ function DayDetailModal({
     }
   };
 
-  const hasPhotos = photos && photos.length > 0;
+  const hasPhotos = (photos?.length ?? 0) > 0;
 
   return (
     <div className="space-y-4">
