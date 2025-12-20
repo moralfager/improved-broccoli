@@ -1,5 +1,8 @@
 services:
-  backend:
+  # ============================================
+  # Couple Calendar Project
+  # ============================================
+  zha-backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -28,9 +31,9 @@ services:
       retries: 3
       start_period: 40s
     networks:
-      - zha-network
+      - apps-network
 
-  frontend:
+  zha-frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -43,16 +46,75 @@ services:
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:3001/api}
       - NODE_ENV=production
     depends_on:
-      backend:
+      zha-backend:
         condition: service_healthy
     restart: unless-stopped
     networks:
-      - zha-network
+      - apps-network
+
+  # ============================================
+  # Eco Monitoring Project
+  # ============================================
+  eco-backend:
+    build:
+      context: ./vision/backend
+      dockerfile: Dockerfile
+    container_name: eco-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=info
+      - CORS_ORIGINS=${ECO_CORS_ORIGINS:-http://localhost:3002,http://85.202.193.35:3002}
+    volumes:
+      - ./vision/backend/ml_models:/app/ml_models:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - apps-network
+
+  eco-frontend:
+    build:
+      context: ./vision/frontend
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=${ECO_NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    container_name: eco-frontend
+    ports:
+      - "3002:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=${ECO_NEXT_PUBLIC_API_URL:-http://localhost:8000}
+      - NODE_ENV=production
+    depends_on:
+      eco-backend:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - apps-network
+
+  # Mock Data Sender (optional, only runs with --profile mock)
+  eco-mock-sender:
+    build:
+      context: ./vision/scripts
+      dockerfile: Dockerfile
+    container_name: eco-mock-sender
+    environment:
+      - API_URL=http://eco-backend:8000/api/data
+      - SEND_INTERVAL=30
+    depends_on:
+      eco-backend:
+        condition: service_healthy
+    restart: unless-stopped
+    profiles:
+      - mock
+    networks:
+      - apps-network
 
 networks:
-  zha-network:
+  apps-network:
     driver: bridge
-
-volumes:
-  backend-data:
-
