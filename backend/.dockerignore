@@ -9,4 +9,10 @@ README.md
 uploads
 dev.db
 dev.db-journal
+data
+*.md
+.vscode
+.idea
+*.swp
+*.swo
 

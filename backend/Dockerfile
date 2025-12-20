@@ -8,12 +8,15 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
+# Set Node.js memory limit for build (increase to 6GB)
+ENV NODE_OPTIONS=--max-old-space-size=6144
+
 # Copy package files
 COPY package*.json ./
 COPY prisma ./prisma/
 
 # Install dependencies
-RUN npm ci
+RUN npm ci --prefer-offline --no-audit
 
 # Generate Prisma Client
 RUN npx prisma generate
@@ -21,8 +24,7 @@ RUN npx prisma generate
 # Copy source code
 COPY . .
 
-# Build the application (increase memory limit for build)
-ENV NODE_OPTIONS=--max-old-space-size=4096
+# Build the application
 RUN npm run build
 
 # Expose port
