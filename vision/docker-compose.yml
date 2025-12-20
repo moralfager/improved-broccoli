@@ -46,24 +46,6 @@ services:
     networks:
       - eco-network
 
-  # Mock Data Sender (optional, for testing)
-  mock-sender:
-    build:
-      context: ./scripts
-      dockerfile: Dockerfile
-    container_name: eco-mock-sender
-    environment:
-      - API_URL=http://backend:8000/api/data
-      - SEND_INTERVAL=30
-    depends_on:
-      backend:
-        condition: service_healthy
-    restart: unless-stopped
-    profiles:
-      - mock  # Only runs with: docker-compose --profile mock up
-    networks:
-      - eco-network
-
 networks:
   eco-network:
     driver: bridge
