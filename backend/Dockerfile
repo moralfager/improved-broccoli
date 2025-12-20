@@ -21,7 +21,8 @@ RUN npx prisma generate
 # Copy source code
 COPY . .
 
-# Build the application
+# Build the application (increase memory limit for build)
+ENV NODE_OPTIONS=--max-old-space-size=4096
 RUN npm run build
 
 # Expose port
